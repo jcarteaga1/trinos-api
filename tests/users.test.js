@@ -219,6 +219,17 @@ describe('Users routes', () => {
     expect(response.body.data.accessToken).not.toBeNull();
   });
 
+  it('Should return error on login with wrong password', async () => {
+    const payload = {
+      username: 'myusername',
+      password: '00000',
+    };
+    const response = await request(app).post(`${USERS_PATH}/login`).send(payload);
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.status).toBe('User not found');
+  });
+
   it('Should admin role get all users', async () => {
     const response = await request(app)
       .get(`${USERS_PATH}/all`)
@@ -241,7 +252,26 @@ describe('Users routes', () => {
     expect(response.body.data[0].active).toBeUndefined();
   });
 
-  it('Should return unauthorized on get all users with regular role', async () => {
+  it('Should return unauthorized on get all users without auth token', async () => {
+    const response = await request(app)
+      .get(`${USERS_PATH}/all`);
+
+    expect(response.statusCode).toBe(401);
+    expect(response.body.status).toBe('Access token required');
+  });
+
+  it('Should return JWT error on get all users with malformed auth token', async () => {
+    const response = await request(app)
+      .get(`${USERS_PATH}/all`)
+      .set('Authorization', `bearer 12345`);
+
+    console.log(response.body)
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body.status).toBe('jwt malformed');
+  });
+
+  it('Should return forbidden on get all users with regular role', async () => {
     const response = await request(app)
       .get(`${USERS_PATH}/all`)
       .set('Authorization', `bearer ${secondUserAccessToken}`);
